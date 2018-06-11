@@ -1,2 +1,3 @@
-# repro-redis
-reactive c++ redis client, promisifed
+# repro-kafka
+
+reactive c++ kafka client, promisifed
