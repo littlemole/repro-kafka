@@ -1,5 +1,13 @@
 #include "reprokafka/kafka.h"
 #include <signal.h>
+/*
+#include <string>
+#include <iostream>
+#include <sstream>
+#include <memory>
+#include <vector>
+#include <thread>
+*/
 
 using namespace prio;
 
@@ -229,15 +237,10 @@ Kafka::~Kafka()
 {
 	stop();
 
-//		if(rkt_producer_)
-//			rd_kafka_topic_destroy(rkt_producer_);
+	subscriptions_.clear();
 
 	if(rk_producer_)
 		rd_kafka_destroy(rk_producer_);	
-
-
-//		if(rkt_consumer_)
-//			rd_kafka_topic_destroy(rkt_consumer_);
 
 	if(rk_consumer_)
 		rd_kafka_destroy(rk_consumer_);	
@@ -250,8 +253,6 @@ Kafka::~Kafka()
 		rd_kafka_dump(stdout, rk_producer_);	
 
 	worker_.join();	
-
-	run = 0;
 }
 
 void Kafka::connect()
@@ -302,9 +303,10 @@ void Kafka::consume()//int partition = 0, int64_t offset = 0)
 
 void Kafka::stop()
 {
-	stop_ = true;
+	stop_ = true; 
 	if(rk_consumer_)
 		rd_kafka_consumer_close(rk_consumer_);
+	std::cout << "kafka stop" << std::endl;
 }
 
 repro::Future<KafkaMsg> Kafka::subscribe(const std::string& topic)
@@ -329,7 +331,7 @@ void Kafka::create_topic(const std::string& topic, KafkaTopicConfig& topic_conf 
 	topics_[topic] = KafkaTopic(topic,rkt);
 }
 
-repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, int partition = -1)
+repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, int partition )
 {
 	rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
 
@@ -371,7 +373,7 @@ repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, int
 	return ack->p.future();	
 }
 
-repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, const std::string& key, int partition = -1)
+repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, const std::string& key, int partition )
 {
 	rd_kafka_resp_err_t err = RD_KAFKA_RESP_ERR_NO_ERROR;
 
@@ -515,49 +517,3 @@ void Kafka::poll()
 
 } // close namespace
 
-using namespace reprokafka;
-
-int run = 1;
-
-int main (int argc, char **argv) 
-{
-	if(argc < 2)
-	{
-		std::cout << "usage: producer <msg>";
-		return 0;
-	}
-
-
-	KafkaConfig conf;
-	KafkaTopicConfig topicConf;
-/*	
-	KafkaProducer kProducer(conf);
-
-
-	kProducer.create_topic("mytopic");
-	kProducer.produce("mytopic", argv[1]);
-	kProducer.consume();
-*/
-	conf.prop("group.id","mytopicgid");
-	//topicConf.prop("group.id","mytopicgid");
-	Kafka kConsumer(conf);
-
-	signal(SIGINT, [](int s) { run = 0; });
-	
-	kConsumer
-	.subscribe("mytopic")
-	.then([](KafkaMsg msg)
-	{
-		std::cout << msg.topic << ": " << msg.msg << std::endl;
-	});
-
-	kConsumer.create_topic("mytopic");
-	kConsumer.send("mytopic","killroy was here!");
-//	std::cout << low << ":" << hilo.second << std::endl;
-	kConsumer.consume();
-	kConsumer.connect();//0,RD_KAFKA_OFFSET_STORED);//,hilo.first);	
- 
-	while(run);
-
-	return 0;
-}

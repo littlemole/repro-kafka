@@ -1,13 +1,7 @@
 #ifndef _MOL_DEF_GUARD_DEFINE_MOD_HTTP_REDIS_DEF_GUARD_
 #define _MOL_DEF_GUARD_DEFINE_MOD_HTTP_REDIS_DEF_GUARD_
 
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <memory>
-#include <vector>
 #include <atomic>
-#include <thread>
 #include <map>
 
 #include "priocpp/common.h"
@@ -64,6 +58,8 @@ class KafkaTopic
 {
 public:
 
+	KafkaTopic() {}
+
 	KafkaTopic(const std::string& name,rd_kafka_topic_t *rk);
 	~KafkaTopic();
 
@@ -80,6 +76,8 @@ private:
 class KafkaSubscription
 {
 public:
+
+	KafkaSubscription() {}
 
 	KafkaSubscription(const std::string& name)
 		: topic(name), p(repro::promise<KafkaMsg>())

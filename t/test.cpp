@@ -10,10 +10,10 @@
 #include "priocpp/api.h"
 #include "priocpp/task.h"
 #include <signal.h>
-#include <reproredis/redis.h>
+#include <reprokafka/kafka.h>
  
 using namespace prio;
-using namespace reproredis;
+using namespace reprokafka;
 
 
 class BasicTest : public ::testing::Test {
@@ -36,7 +36,7 @@ class BasicTest : public ::testing::Test {
 
 
 
-#ifdef _RESUMABLE_FUNCTIONS_SUPPORTED
+#ifdef _RESUMABLE_FUNCTIONS_SUPPORTED_XX
 
 repro::Future<> coroutine_example(reproredis::RedisPool& redis, std::string& result);
 
@@ -98,167 +98,50 @@ repro::Future<> coroutine_example(reproredis::RedisPool& redis, std::string& res
 
 
 
-TEST_F(BasicTest, RawRedis) 
+TEST_F(BasicTest, KafkaTest) 
 {
 	std::string result;
+
 	{
-		signal(SIGINT).then([](int s) {theLoop().exit(); });
+		KafkaConfig conf;
+		KafkaTopicConfig topicConf;
 
-		RedisPool redis("redis://localhost:6379");
+		conf.prop("group.id","mytopicgid");
+		Kafka kConsumer(conf);
 
-		redis.cmd("LRANGE", "mylist", 0, -1)
-		.then([](RedisResult::Ptr r)
+		signal(SIGINT).then([](int s) { theLoop().exit(); });
+		
+		kConsumer
+		.subscribe("mytopic")
+		.then([&result,&kConsumer](KafkaMsg msg)
 		{
-			std::cout  << "mylist size:" <<  r->size() << std::endl;
-			theLoop().exit();
-		})		
-		.otherwise([](const std::exception& ex)
-		{
-			std::cout << ex.what() << std::endl;
-			theLoop().exit();
+			std::cout << "!!" << msg.topic << ": " << msg.msg << std::endl;
+			result = msg.msg;
 		});
 
-		theLoop().run();
-	}
-
-	MOL_TEST_ASSERT_CNTS(0, 0);		
-}
-
-
-TEST_F(BasicTest, RawRedisChained) 
-{
-	std::string result;
-	{
-		signal(SIGINT).then([](int s) {theLoop().exit(); });
-
-		RedisPool redis("redis://localhost:6379");
-
-		redis.cmd("LRANGE", "mylist", 0, -1)
-		.then([](RedisResult::Ptr r)
+		kConsumer.create_topic("mytopic");
+		timeout( [&kConsumer]() 
 		{
-			std::cout  << "mylist size:" <<  r->size() << std::endl;
-			return r->cmd("INFO");
-		})			
-		.then([](RedisResult::Ptr r)
-		{
-			std::cout << "INFO:" << r->str() << std::endl;
-			theLoop().exit();
-		})		
-		.otherwise([](const std::exception& ex)
-		{
-			std::cout << ex.what() << std::endl;
-			theLoop().exit();
-		});
-
-		theLoop().run();
-	}
-	MOL_TEST_ASSERT_CNTS(0, 0);		
-}
-
-TEST_F(BasicTest, RawRedisChained2)
-{
-	std::string result;
-	{
-		signal(SIGINT).then([](int s) {theLoop().exit(); });
-
-		RedisPool redis("redis://localhost:6379");
-
-		redis.cmd("LRANGE", "mylist", 0, -1)
-			.then([&redis](RedisResult::Ptr r)
-		{
-			std::cout << "mylist size:" << r->size() << std::endl;
-			return redis.cmd("INFO");
-		})
-			.then([](RedisResult::Ptr r)
-		{
-			std::cout << "INFO:" << r->str() << std::endl;
-			timeout([]() {
+			kConsumer
+			.send("mytopic","killroy was here!")
+			.then([]()
+			{
+				std::cout << "ACK!" << std::endl;
 				theLoop().exit();
-			}, 0, 200);
-		})
-			.otherwise([](const std::exception& ex)
-		{
-			std::cout << ex.what() << std::endl;
-			timeout([]() {
-				theLoop().exit();
-			}, 0, 200);
-		});
-
+			});
+		},1,0);
+	//	std::cout << low << ":" << hilo.second << std::endl;
+		kConsumer.consume();
+		kConsumer.connect();//0,RD_KAFKA_OFFSET_STORED);//,hilo.first);	
+	
+		std::cout << "loop start" << std::endl;
 		theLoop().run();
+		std::cout << "loop end" << std::endl;
 	}
+	EXPECT_EQ("killroy was here!", result);
 	MOL_TEST_ASSERT_CNTS(0, 0);
 }
 
-
-TEST_F(BasicTest, RawRedisSubscribe) 
-{
-	std::string result;
-	{
-
-		RedisPool redis("redis://localhost:6379");
-
-		RedisSubscriber sub(redis);
-
-		signal(SIGINT).then([&sub](int s) 
-		{
-			//sub.unsubscribe();
-			theLoop().exit(); 
-		});
-
-		
-		prio::timeout([&redis]()
-		{
-			
-			redis.cmd("publish", "mytopic", "HELO WORLD")
-			.then([](RedisResult::Ptr r)
-			{
-				std::cout << "MSG SEND! " << r->str() << std::endl;
-			})			
-			.otherwise([](const std::exception& ex)
-			{
-				std::cout << ex.what() << std::endl;
-				theLoop().exit();
-			});
-			
-		}
-		,1,0);
-		
-		
-		sub.subscribe("mytopic")
-		.then([&sub,&result](std::pair<std::string,std::string> msg)
-		{
-			std::cout  << "msg: " << msg.first << ": " << msg.second << std::endl;
-			result = msg.second;
-			sub.unsubscribe(); 
-			theLoop().exit();
-			/*
-			timeout([]()
-			{
-			
-				nextTick([]()
-				{
-					theLoop().exit();
-				});
-				
-			},0,500);
-		*/
-		})			
-		.otherwise([](const std::exception& ex)
-		{
-			std::cout << "!" << ex.what() << std::endl;
-			theLoop().exit();
-		});
-
-		
-		
-		theLoop().run();
-		//redis.shutdown();
-	}
-
-
-	EXPECT_EQ("HELO WORLD", result);
-	MOL_TEST_ASSERT_CNTS(0, 0);	
-}
 
 
 int main(int argc, char **argv) {

@@ -1,0 +1,9 @@
+prefix=/usr/local
+includedir=${prefix}/include
+libdir=${prefix}/lib
+
+Name: repro-kafka
+Description: reactive c++ kafka client wrapper with promises
+Version: 0.0.1
+Cflags: -I${includedir}
+Libs: -L${libdir} -lreprokafka -lrdkafka -lpriocpp  -lnghttp2 -lssl -lcrypto -lpthread 

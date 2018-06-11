@@ -3,7 +3,7 @@ BACKEND=libevent
 DESTDIR=/
 PREFIX=/usr/local
 
-LIBNAME = reproredis
+LIBNAME = reprokafka
 LIB = ./lib$(LIBNAME).a
 LIBINC = ./include/$(LIBNAME)
 

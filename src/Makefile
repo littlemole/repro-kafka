@@ -24,8 +24,8 @@ CPPFLAGS = -Wall -I../include $(DEBUG) $(INCLUDE) $(OPTIONS) $(PROMISE_IMPL)
 #################################################
 
 # the  lib
-LIB = ./build/libreproredisd.a
-release : override LIB = ./build/libreproredis.a
+LIB = ./build/libreprokafkad.a
+release : override LIB = ./build/libreprokafka.a
 
 LIB_SRC = .
 LIB_BUILD = ./build

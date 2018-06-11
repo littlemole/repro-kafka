@@ -6,12 +6,12 @@ PKG_INC=$(shell pkg-config priocpp  --cflags)
 PKG_LIB=$(shell pkg-config openssl --libs)
 
 # if not g++ we assume clang++
-DEFAULT_LIBS = -stdlib=libc++ -fcoroutines-ts  -lc++abi -std=c++14 
+DEFAULT_LIBS = -stdlib=libc++ -fcoroutines-ts -lrdkafka -lc++abi -std=c++14 
 DEFAULT_OPTS = -std=c++14 -stdlib=libc++ -fcoroutines-ts -D_RESUMABLE_FUNCTIONS_SUPPORTED 
 
 ifeq ($(CXX),g++)
 DEFAULT_OPTS = -std=c++14 
-DEFAULT_LIBS = 
+DEFAULT_LIBS = -lrdkafka
 endif
 
 #backend switch libevent/boost_asio
@@ -28,8 +28,8 @@ OPTIONS =  -pthread -D_REENTRANT $(DEFAULT_OPTS) $(PKG_INC)
 CPPFLAGS = -Wall -I../include $(DEBUG) $(OPTIONS) $(PROMISE_IMPL)
 
 # target
-LIB = ../src/build/libreproredisd.a -lpriocppd
-release : override LIB = ../src/build/libreproredis.a -lpriocpp
+LIB = ../src/build/libreprokafkad.a -lpriocppd
+release : override LIB = ../src/build/libreprokafka.a -lpriocpp
 
 TEST_SRC   = .
 TEST_BUILD = ./build
