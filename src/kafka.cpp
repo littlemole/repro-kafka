@@ -20,7 +20,7 @@ static void rebalance_cb (rd_kafka_t *rk,
 			  			  rd_kafka_topic_partition_list_t *partitions,
                           void *opaque) 
 {
-	fprintf(stderr, "%% Consumer group rebalanced: ");
+	fprintf(stderr, "%% Consumer group rebalanced: %i", err);
 
 	switch (err)
 	{

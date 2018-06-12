@@ -111,28 +111,36 @@ TEST_F(BasicTest, KafkaTest)
 
 		signal(SIGINT).then([](int s) { theLoop().exit(); });
 		
-		kConsumer
-		.subscribe("mytopic")
-		.then([&result,&kConsumer](KafkaMsg msg)
-		{
-			std::cout << "!!" << msg.topic << ": " << msg.msg << std::endl;
-			result = msg.msg;
-		});
+		//timeout( [&kConsumer,&result]() 
+		//{
+			kConsumer
+			.subscribe("mytopic")
+			.then([&result,&kConsumer](KafkaMsg msg)
+			{
+				std::cout << "!!" << msg.topic << ": " << msg.msg << std::endl;
+				result = msg.msg;
+				timeout([]()
+				{
+					theLoop().exit();
+				},1,0);
+			});
 
-		kConsumer.create_topic("mytopic");
-		timeout( [&kConsumer]() 
+		//},0,100);
+
+			kConsumer.consume();
+		kConsumer.connect();//0,RD_KAFKA_OFFSET_STORED);//,hilo.first);	
+
+		timeout( [&kConsumer,&result]() 
 		{
+			kConsumer.create_topic("mytopic");
 			kConsumer
 			.send("mytopic","killroy was here!")
 			.then([]()
 			{
 				std::cout << "ACK!" << std::endl;
-				theLoop().exit();
 			});
-		},1,0);
+		},5,0);
 	//	std::cout << low << ":" << hilo.second << std::endl;
-		kConsumer.consume();
-		kConsumer.connect();//0,RD_KAFKA_OFFSET_STORED);//,hilo.first);	
 	
 		std::cout << "loop start" << std::endl;
 		theLoop().run();
