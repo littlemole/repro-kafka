@@ -1,9 +1,9 @@
 # This is a comment
-FROM littlemole/devenv_gpp_make
+FROM littlemole/devenv_clangpp_make
 MAINTAINER me <little.mole@oha7.org>
 
 # std dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y redis-server
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y librdkafka-dev
 
 ARG CXX=g++
 ENV CXX=${CXX}
@@ -17,9 +17,8 @@ ENV BUILDCHAIN=${BUILDCHAIN}
 RUN /usr/local/bin/install.sh repro 
 RUN /usr/local/bin/install.sh prio 
 
-RUN mkdir -p /usr/local/src/repro-redis
-ADD . /usr/local/src/repro-redis
+RUN mkdir -p /usr/local/src/repro-kafka
+ADD . /usr/local/src/repro-kafka
 
-RUN sed -i 's/bind 127\.0\.0\.1 ::1/bind 127.0.0.1/' /etc/redis/redis.conf
 
-RUN /etc/init.d/redis-server start && SKIPTESTS=false /usr/local/bin/build.sh repro-redis 
+CMD SKIPTESTS=false KAFKA=kafka /usr/local/bin/build.sh repro-kafka

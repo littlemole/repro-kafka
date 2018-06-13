@@ -14,6 +14,21 @@
 
 namespace reprokafka   {
 
+class KafkaEx : public repro::Ex
+{
+public:
+	KafkaEx()
+	{}
+
+	KafkaEx(const std::string& s) 
+		: repro::Ex(s)
+	{}
+
+	KafkaEx(rd_kafka_resp_err_t e) 
+		: repro::Ex(rd_kafka_err2str(e))
+	{}
+};
+
 class KafkaMsg 
 {
 public:
@@ -69,7 +84,7 @@ public:
 
 private:
 	std::string name_;
-	std::shared_ptr<rd_kafka_topic_t> rkt_producer_ = nullptr;
+	std::shared_ptr<rd_kafka_topic_t> rkt_producer_;
 };
 
 

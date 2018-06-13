@@ -103,7 +103,13 @@ TEST_F(BasicTest, KafkaTest)
 	std::string result;
 
 	{
-		KafkaConfig conf;
+		std::string brokers("localhost:9092");
+		if (getenv ("KAFKA"))
+		{
+			brokers = std::string(getenv ("KAFKA"));
+		}
+
+		KafkaConfig conf(brokers);
 		KafkaTopicConfig topicConf;
 
 		conf.prop("group.id","mytopicgid");
@@ -111,24 +117,20 @@ TEST_F(BasicTest, KafkaTest)
 
 		signal(SIGINT).then([](int s) { theLoop().exit(); });
 		
-		//timeout( [&kConsumer,&result]() 
-		//{
-			kConsumer
-			.subscribe("mytopic")
-			.then([&result,&kConsumer](KafkaMsg msg)
+		kConsumer
+		.subscribe("mytopic")
+		.then([&result,&kConsumer](KafkaMsg msg)
+		{
+			std::cout << "!!" << msg.topic << ": " << msg.msg << std::endl;
+			result = msg.msg;
+			timeout([]()
 			{
-				std::cout << "!!" << msg.topic << ": " << msg.msg << std::endl;
-				result = msg.msg;
-				timeout([]()
-				{
-					theLoop().exit();
-				},1,0);
-			});
+				theLoop().exit();
+			},1,0);
+		});
 
-		//},0,100);
-
-			kConsumer.consume();
-		kConsumer.connect();//0,RD_KAFKA_OFFSET_STORED);//,hilo.first);	
+		kConsumer.consume();
+		kConsumer.connect();
 
 		timeout( [&kConsumer,&result]() 
 		{
@@ -139,12 +141,9 @@ TEST_F(BasicTest, KafkaTest)
 			{
 				std::cout << "ACK!" << std::endl;
 			});
-		},5,0);
-	//	std::cout << low << ":" << hilo.second << std::endl;
+		},1,0);
 	
-		std::cout << "loop start" << std::endl;
 		theLoop().run();
-		std::cout << "loop end" << std::endl;
 	}
 	EXPECT_EQ("killroy was here!", result);
 	MOL_TEST_ASSERT_CNTS(0, 0);
