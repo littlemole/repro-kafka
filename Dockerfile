@@ -21,4 +21,4 @@ RUN mkdir -p /usr/local/src/repro-kafka
 ADD . /usr/local/src/repro-kafka
 
 
-CMD SKIPTESTS=false KAFKA=kafka /usr/local/bin/build.sh repro-kafka
+CMD sleep 10 && SKIPTESTS=false KAFKA=kafka /usr/local/bin/build.sh repro-kafka

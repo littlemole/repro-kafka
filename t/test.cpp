@@ -113,6 +113,10 @@ TEST_F(BasicTest, KafkaTest)
 		KafkaTopicConfig topicConf;
 
 		conf.prop("group.id","mytopicgid");
+		conf.prop("socket.blocking.max.ms","10");
+		conf.prop("enable.auto.commit","true");
+		conf.prop("auto.commit.interval.ms","500");
+
 		Kafka kConsumer(conf);
 
 		signal(SIGINT).then([](int s) { theLoop().exit(); });
@@ -126,7 +130,7 @@ TEST_F(BasicTest, KafkaTest)
 			timeout([]()
 			{
 				theLoop().exit();
-			},1,0);
+			},0,200);
 		});
 
 		kConsumer.consume();

@@ -41,6 +41,12 @@ static void msg_delivered (rd_kafka_t *rk,
 			   rd_kafka_resp_err_t error_code,
 			   void *opaque, void *msg_opaque) 
 {
+	/*
+	if(!error_code)
+	{
+		rd_kafka_commit(rk,NULL,false);
+	}
+	*/
 	if(msg_opaque)
 	{
 		ACK* ack = (ACK*)msg_opaque;
@@ -151,7 +157,8 @@ KafkaTopic::KafkaTopic(const std::string& name,rd_kafka_topic_t *rk)
 {}
 
 KafkaTopic::~KafkaTopic()
-{}
+{
+}
 
 std::string KafkaTopic::name()
 {
@@ -210,11 +217,11 @@ Kafka::~Kafka()
 {
 	stop();
 
-	subscriptions_.clear();
-
+	topics_.clear();
 	if(rk_producer_)
 		rd_kafka_destroy(rk_producer_);	
 
+	subscriptions_.clear();
 	if(rk_consumer_)
 		rd_kafka_destroy(rk_consumer_);	
 
@@ -249,7 +256,7 @@ void Kafka::consume()
 	{
 		throw KafkaEx(err);
 	}
-
+/*
 	rd_kafka_topic_partition_list_t * partitions = nullptr;
 	while(true)
 	{
@@ -290,6 +297,7 @@ void Kafka::consume()
 	{
 		rd_kafka_topic_partition_list_destroy(partitions);
 	}
+	*/
 }	
 
 void Kafka::stop()
