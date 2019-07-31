@@ -1,5 +1,5 @@
 # This is a comment
-FROM littlemole/devenv_clangpp_make
+FROM littlemole/devenv_gpp_make
 MAINTAINER me <little.mole@oha7.org>
 
 # std dependencies
@@ -21,4 +21,4 @@ RUN mkdir -p /usr/local/src/repro-kafka
 ADD . /usr/local/src/repro-kafka
 
 
-CMD SKIPTESTS=false KAFKA=kafka /usr/local/bin/build.sh repro-kafka
+CMD SKIPTESTS=false KAFKA="kafka" /usr/local/bin/build.sh repro-kafka

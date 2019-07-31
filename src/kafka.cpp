@@ -11,6 +11,8 @@ static void rebalance_cb (rd_kafka_t *rk,
 			  			  rd_kafka_topic_partition_list_t *partitions,
                           void *opaque) 
 {
+		std::cout << "rebalance_cb" << std::endl;
+
 #ifdef MOL_PROMISE_DEBUG
 	fprintf(stderr, "%% Consumer group rebalanced: %i\r\n", err);
 #endif
@@ -41,18 +43,22 @@ static void msg_delivered (rd_kafka_t *rk,
 			   rd_kafka_resp_err_t error_code,
 			   void *opaque, void *msg_opaque) 
 {
-	/*
+	std::cout << "msg_delivered" << std::endl;
+
+	
 	if(!error_code)
 	{
 		rd_kafka_commit(rk,NULL,false);
 	}
-	*/
+	
 	if(msg_opaque)
 	{
+		std::cout << "msg_delivered opaque" << std::endl;
 		ACK* ack = (ACK*)msg_opaque;
 
 		prio::nextTick( [ack,error_code]() 
 		{
+			std::cout << "msg_delivered nexttick" << std::endl;
 			if(error_code)
 			{
 				ack->p.reject(KafkaEx(error_code));
@@ -237,6 +243,7 @@ Kafka::~Kafka()
 
 void Kafka::connect()
 {
+	std::cout << "connect()" << std::endl;
 	worker_ = std::thread(&Kafka::poll,this);
 }
 
@@ -319,12 +326,16 @@ void Kafka::create_topic(const std::string& topic)
 	KafkaTopicConfig topic_conf;
 	rd_kafka_topic_t* rkt = rd_kafka_topic_new(rk_producer_, topic.c_str(), topic_conf.handle());
 
+	std::cout << "topic created" << std::endl;
+
 	topics_[topic] = KafkaTopic(topic,rkt);
 }
 
 void Kafka::create_topic(const std::string& topic, KafkaTopicConfig& topic_conf )
 {
 	rd_kafka_topic_t* rkt = rd_kafka_topic_new(rk_producer_, topic.c_str(), topic_conf.handle());
+
+	std::cout << "topic created" << std::endl;
 
 	topics_[topic] = KafkaTopic(topic,rkt);
 }
@@ -335,8 +346,12 @@ repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, int
 
 	while( topics_.count(topic) == 0)
 	{
+		std::cout << "~";
+		std::cout.flush();
 		create_topic(topic);
 	}
+
+	std::cout << "send" << std::endl;
 
 	rd_kafka_topic_t* rkt = topics_[topic].handle();
 
@@ -351,12 +366,17 @@ repro::Future<> Kafka::send(const std::string& topic,const std::string& msg, int
 			ack) == -1) 
 	{
 		err = rd_kafka_last_error();
+		std::cout << err << std::endl;
 	}
 	if (err) 
 	{
-		ack->p.reject(KafkaEx(err));
-		delete ack;
+		nextTick([ack,err]()
+		{
+			ack->p.reject(KafkaEx(err));
+			delete ack;
+		});
 	}	
+	std::cout << "sent" << std::endl;
 
 	return ack->p.future();	
 }
@@ -479,17 +499,26 @@ void Kafka::msg_consume (rd_kafka_message_t *rkmessage)
 void Kafka::poll()
 {
 	rd_kafka_message_t *rkmessage = nullptr;
+	
+	std::cout << "POLL" << std::endl;
 
 	while(!stop_)
 	{
+		std::cout << "_";
+		std::cout.flush();
+
 		if (rd_kafka_outq_len(rk_producer_) > 0)
 		{
+			std::cout << ".";
+			std::cout.flush();
 			rd_kafka_poll(rk_producer_, 100);
 		}
 
 		rkmessage = rd_kafka_consumer_poll(rk_consumer_, 100);
 		if (rkmessage) 
 		{
+			std::cout << "+";
+			std::cout.flush();
 			msg_consume(rkmessage);
 			rd_kafka_message_destroy(rkmessage);
 		}
